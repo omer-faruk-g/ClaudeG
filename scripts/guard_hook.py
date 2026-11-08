@@ -22,6 +22,7 @@ A hook must never break your session: on any error it writes to stderr and exits
 import argparse
 import json
 import os
+import posixpath
 import re
 import shlex
 import shutil
@@ -220,18 +221,24 @@ def expand(t, env):
 
 def safe_target(t, env=None, extra=()):
     """A temp or build-output path, or one listed in safe_paths: deleting it loses nothing. $VARS set earlier in
-    the same line are resolved, and a relative path is judged together with the directory it runs in."""
+    the same line are resolved, and a relative path is judged together with the directory it runs in. A relative
+    path that runs through a build or cache folder (build/libs, versions/*/build/generated) is safe even with a glob,
+    since every match stays inside that folder; `..` is resolved first, so build/../src is not."""
     env = env or {}
     t = expand(t, env)
-    if not re.match(r"^([/~$" + B + B + "]|[A-Za-z]:)", t):
+    absolute = re.match(r"^([/~$" + B + B + "]|[A-Za-z]:)", t)
+    parts = posixpath.normpath(t.replace(B, "/")).lower().split("/")
+    if absolute:
+        parts = parts[-1:]  # an absolute path counts only by its last folder, as before
+    if any(p in SAFE_DIRS or p.endswith(".egg-info") or p.startswith(".venv-") for p in parts):
+        return True
+    if not absolute:
         t = env.get("PWD", "") + "/" + t
     t = t.rstrip("/" + B)
     if not t or "*" in t or "?" in t:
         return False
-    last = re.split(r"[/" + B + B + "]", t)[-1].lower()
     norm = t.replace(B, "/").lower()
-    return (bool(TEMP_PATH.search(t)) or last in SAFE_DIRS or last.endswith(".egg-info") or last.startswith(".venv-")
-            or any(p.replace(B, "/").lower().rstrip("/") in norm for p in extra))
+    return bool(TEMP_PATH.search(t)) or any(p.replace(B, "/").lower().rstrip("/") in norm for p in extra)
 
 
 def is_recurse(arg):

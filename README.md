@@ -50,7 +50,7 @@ Optional settings in `~/.claude/claudeg.json` (defaults shown). Each check takes
   "verify": "block", "powershell": "5.1", "safe_paths": [] }
 ```
 
-Tests: `python ~/.claude/skills/claudeg/tests/test_claudeg.py` (25 tests, stdlib only).
+Tests: `python ~/.claude/skills/claudeg/tests/test_claudeg.py` (26 tests, stdlib only).
 
 ## Example (one user's transcripts, 11 days)
 

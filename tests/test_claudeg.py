@@ -66,6 +66,17 @@ class Destructive(unittest.TestCase):
         self.assertEqual(decision(g.pre_event({"tool_name": "Bash", "tool_input": {"command": "rm -rf src"},
                                                "cwd": "C:/Users/HP/AppData/Local/Temp/run1"}, CFG)), None)
 
+    def test_rm_inside_build_folders(self):
+        self.check("rm -rf versions/*/build/generated/stonecutter", None)
+        self.check("rm -rf build/libs build/classes ../app/node_modules/.vite", None)
+        self.assertIsNone(ps(r"Remove-Item -Recurse -Force versions\1.21\build\classes", windows=False))
+        self.check("rm -rf build/../src", "ask")
+        self.check("rm -rf versions/26.3", "ask")
+        self.check("rm -rf bu* */src", "ask")
+        self.check("rm -rf C:/build/app/src ~/out/notes", "ask")  # absolute: only the last folder counts
+        self.assertEqual(decision(g.pre_event({"tool_name": "Bash", "tool_input": {"command": "rm -rf src"},
+                                               "cwd": "C:/work/build/app"}, CFG)), "ask")  # cwd is not the target
+
     def test_safe_paths(self):
         cfg = dict(CFG, safe_paths=["Desktop/PhotonAI/.photonai_kontrol"])
         cmd = r"Remove-Item -Recurse -Force C:\Users\HP\Desktop\PhotonAI\.photonai_kontrol"
